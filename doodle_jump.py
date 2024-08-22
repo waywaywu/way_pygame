@@ -19,12 +19,15 @@ PLAYER_FRICTION = -0.12
 PLAYER_GRAV = 0.8
 PLAYER_JUMP = 23
 
-
-
+    
 
 BOOST_POWER = 60
 POW_SPAWN_PCT = 7
 MOB_FREQ = 5000
+PLAYER_LAYER = 2
+PLATFORM_LAYER = 1
+POW_LAYER = 1
+MOB_LAYER = 2
 #platforms 
 PLATFORM_LIST = [(0, HEIGHT - 60),
                 (WIDTH / 2 - 50, HEIGHT * 3 / 4 - 50),
@@ -37,6 +40,7 @@ BLACK = (0,0,0)
 RED = (255,0,0)
 GREEN = (0,255,0)
 BLUE = (0,0,255)
+
 YELLOW = (255,255,0)
 PURPLE = (160,32,240)
 LIGHTBLUE = (0,155,155)
@@ -58,6 +62,7 @@ class Spritesheet:
 
 class Player(pg.sprite.Sprite):
     def __init__(self, game):
+        self._layer = PLAYER_LAYER
         pg.sprite.Sprite.__init__(self)
         self.game = game
         self.walking = False
@@ -154,6 +159,7 @@ class Player(pg.sprite.Sprite):
 
 class Platform(pg.sprite.Sprite):
     def __init__(self, game, x, y):
+        self._layer = PLATFORM_LAYER
         pg.sprite.Sprite.__init__(self)
         self.game = game
         images = [self.game.spritesheet.get_image(0, 288, 380, 94),
@@ -168,6 +174,7 @@ class Platform(pg.sprite.Sprite):
             Pow(self.game, self)
 class Pow(pg.sprite.Sprite):
     def __init__(self, game, plat):
+        self._layer = POW_LAYER
         self.groups = game.all_sprites, game.powerups
         pg.sprite.Sprite.__init__(self, self.groups)
         self.game = game
@@ -185,6 +192,7 @@ class Pow(pg.sprite.Sprite):
             self.kill()
 class Mob(pg.sprite.Sprite):
     def __init__(self, game):
+        self._layer = MOB_LAYER
         self.groups = game.all_sprites, game.mobs
         pg.sprite.Sprite.__init__(self, self.groups)
         self.game = game
@@ -243,7 +251,7 @@ class Game:
         self.spritesheet = Spritesheet(path.join(img_dir, SPRITESHEET))
     def new(self): 
         self.score = 0
-        self.all_sprites = pg.sprite.Group()
+        self.all_sprites = pg.sprite.LayeredUpdates()
         self.platforms = pg.sprite.Group()
         self.powerups = pg.sprite.Group()
         self.mobs = pg.sprite.Group()
@@ -276,6 +284,10 @@ class Game:
         if now - self.mob_timer > 5000 + random.choice([-1000, -500, 0, 500, 1000]):
             self.mob_timer = now
             Mob(self)
+        #hit mobs?
+        mob_hits = pg.sprite.spritecollide(self.player, self.mobs, False )
+        if mob_hits:
+            self.playing = False
 
         #check if the player hits a platform - only if falling    
         if self.player.vel.y > 0:
@@ -293,8 +305,10 @@ class Game:
 
         if self.player.rect.top <= HEIGHT / 4:
             self.player.pos.y += max(abs(self.player.vel.y), 2)
-            for plat in self.platforms:
+            for plat in self.mobs:
                 plat.rect.y +=   max(abs(self.player.vel.y), 2)
+            for plat in self.platforms:
+                plat.rect.y += max(abs(self.player.vel.y), 2)
                 if plat.rect.top >= HEIGHT:
                     plat.kill()
                     self.score += 10
@@ -336,7 +350,6 @@ class Game:
     def draw(self):
         self.screen.fill(LIGHTBLUE)       
         self.draw_text(str(self.score), 22, WHITE, WIDTH / 2, 15)
-        self.screen.blit(self.player.image, self.player.rect)
         self.all_sprites.draw(self.screen)
         pg.display.flip()
         
