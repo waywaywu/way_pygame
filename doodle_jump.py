@@ -156,6 +156,7 @@ class Player(pg.sprite.Sprite):
                 self.image = self.standing_frames[self.current_frame]
                 self.rect = self.image.get_rect() 
                 self.rect.bottom = bottom
+        self.mask = pg.mask.from_surface(self.image)
 
 class Platform(pg.sprite.Sprite):
     def __init__(self, game, x, y):
@@ -211,20 +212,21 @@ class Mob(pg.sprite.Sprite):
         self.dy = 0.5
 
     def update(self):
-    	self.rect.x += self.vx
-    	self.vy += self.dy
-    	if self.vy > 3 or self.vy < -3:
-    		self.dy *= -1
-    	center = self.rect.center
-    	if self.dy < 0:
-    		self.image = self.image_up
-    	else:
-    		self.image = self.image_down
-    	self.rect = self.image.get_rect()
-    	self.rect.center = center
-    	self.rect.y += self.vy
-    	if self.rect.left > WIDTH + 100 or self.rect.right < -100:
-    		self.kill()
+        self.rect.x += self.vx
+        self.vy += self.dy
+        if self.vy > 3 or self.vy < -3:
+            self.dy *= -1
+        center = self.rect.center
+        if self.dy < 0:
+            self.image = self.image_up
+        else:
+            self.image = self.image_down
+        self.rect = self.image.get_rect()
+        self.mask = pg.mask.from_surface(self.image)
+        self.rect.center = center
+        self.rect.y += self.vy
+        if self.rect.left > WIDTH + 100 or self.rect.right < -100:
+            self.kill()
 
 class Game:
     def __init__(self):
@@ -285,7 +287,7 @@ class Game:
             self.mob_timer = now
             Mob(self)
         #hit mobs?
-        mob_hits = pg.sprite.spritecollide(self.player, self.mobs, False )
+        mob_hits = pg.sprite.spritecollide(self.player, self.mobs, False, pg.sprite.collide_mask)
         if mob_hits:
             self.playing = False
 
